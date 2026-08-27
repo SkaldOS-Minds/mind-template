@@ -8,8 +8,16 @@ between this number and a gated write path is the quantified value of the
 chokepoint, so it is a time series from day one: every run appends a dated row
 to graph/hygiene-history.jsonl.
 
-A run whose numbers match the last row for the same date appends nothing, so
-re-running the script is free and the history stays a record of change.
+One row lands per day. A second run on the same day whose numbers match the last
+row appends nothing, so re-running the script is free; a run on a new date
+appends even when the numbers are identical, because the series is a daily
+record and a flat stretch is a finding.
+
+A mind with zero assertions is not measured at all. There is no percentage to
+take of nothing, and appending a row of zeroes would give a blank mind a
+hygiene history it never earned. This is what keeps the template repository
+blank under its own nightly workflow: the cron runs, finds an empty log, and
+writes nothing for the commit step to push.
 
 Usage:
     python3 scripts/hygiene.py               # measure, print, append if changed
@@ -118,6 +126,9 @@ def main():
     print_row(row)
 
     if args.no_append:
+        return 0
+    if row["total_assertions"] == 0:
+        print("  this mind has no assertions yet; nothing measured, nothing appended")
         return 0
     history = lib.load_jsonl(lib.HYGIENE_HISTORY_PATH)
     if history and same_numbers(history[-1], row):

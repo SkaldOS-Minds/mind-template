@@ -8,8 +8,20 @@
 # up. `git diff graph/projections.jsonl` is then "what this mind changed its
 # mind about last night".
 #
-# hygiene.py appends to graph/hygiene-history.jsonl only when the numbers
-# actually moved, so a quiet mind does not accumulate identical rows.
+# hygiene.py appends one row per day. A quiet mind therefore does accumulate a
+# row a night with identical numbers, and that is the intent: the series is a
+# daily record, and a flat stretch is itself a finding. Re-running the script
+# twice in one day appends nothing.
+#
+# Keeping the template blank. The obvious guard,
+# `if: ${{ !github.event.repository.is_template }}`, is a trap on this
+# workflow: a schedule event carries an EMPTY webhook payload, so
+# `github.event.repository` is undefined, the negation is true, and the cron
+# fires on the template repository itself. The guard below is content-based
+# instead of payload-based: a mind with an empty Edda log has nothing to dream
+# about, which is exactly what the template is and what a freshly stamped mind
+# is until its first assertion. It needs no repository name, so it survives the
+# eventual transfer into the org, and it costs one checkout.
 name: dream
 
 on:
@@ -28,30 +40,46 @@ concurrency:
 
 jobs:
   nightly:
-    # Never on the template repository itself: it must stay a blank mind, and a
-    # blank mind has nothing to dream about.
-    if: ${{ !github.event.repository.is_template }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
+      - name: Is there a mind here to dream about
+        id: guard
+        run: |
+          set -euo pipefail
+          # The Edda header (line 1) is not an assertion. A log with only a
+          # header, or no log at all, is a blank mind.
+          if [ -s graph/assertions.jsonl ] && [ "$(grep -c '' graph/assertions.jsonl)" -gt 1 ]; then
+            echo "blank=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "blank=true" >> "$GITHUB_OUTPUT"
+            echo "empty Edda log: this is a blank mind (the template, or a mind before its first assertion); nothing to dream about"
+          fi
+
       - uses: actions/setup-python@v7
+        if: steps.guard.outputs.blank != 'true'
         with:
           python-version: "3.13"
 
       - name: Fold the log
+        if: steps.guard.outputs.blank != 'true'
         run: python3 scripts/project.py
 
       - name: Dream (evidence_weighted/v0)
+        if: steps.guard.outputs.blank != 'true'
         run: python3 scripts/dream.py
 
       - name: Measure hygiene
+        if: steps.guard.outputs.blank != 'true'
         run: python3 scripts/hygiene.py
 
       - name: Invariant sweep
+        if: steps.guard.outputs.blank != 'true'
         run: python3 scripts/check.py
 
       - name: Commit the night's work
+        if: steps.guard.outputs.blank != 'true'
         run: |
           set -euo pipefail
           git config user.name "skaldos-mind[bot]"

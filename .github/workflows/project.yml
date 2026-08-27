@@ -18,6 +18,14 @@
 # The same `if` also skips the template repository itself. A template must stay
 # a blank mind: if it recomputes itself it writes derived files, and every mind
 # ever stamped from it inherits them.
+#
+# `github.event.repository.is_template` is only readable here because `push`
+# and `workflow_dispatch` both carry a repository object in their webhook
+# payload. It is NOT a general-purpose template guard: a `schedule` event
+# carries an empty payload, so the same expression silently evaluates true.
+# dream.yml is on a cron and therefore guards on the content of the Edda log
+# instead. If a schedule trigger is ever added here, this `if` has to move the
+# same way.
 name: project
 
 on:
