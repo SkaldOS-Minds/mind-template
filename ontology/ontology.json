@@ -1,0 +1,49 @@
+{
+  "version": "0.1",
+  "node_types": {
+    "person": { "description": "A human individual" },
+    "organization": { "description": "A company, team, or institution" },
+    "concept": { "description": "An idea, pattern, or topic worth tracking" },
+    "decision": { "description": "A decision that was made, with rationale" },
+    "document": { "description": "A source document (report, article, dataset)" },
+    "metric": { "description": "A number this mind commits to measuring" },
+    "risk": { "description": "A named way something can fail" }
+  },
+  "predicates": {
+    "works_at":   { "kind": "factual", "src": ["person"], "dst": ["organization"] },
+    "relates_to": { "kind": "factual", "src": null, "dst": null },
+    "part_of":    { "kind": "factual", "src": null, "dst": null },
+    "depends_on": { "kind": "factual", "src": null, "dst": null },
+    "measures":   { "kind": "factual", "src": ["metric"], "dst": null },
+    "supports":   { "kind": "argumentative", "src": null, "dst": null },
+    "contradicts":{ "kind": "argumentative", "src": null, "dst": null },
+    "threatens":  { "kind": "argumentative", "src": ["risk"], "dst": null },
+    "informed_by":{ "kind": "factual", "src": ["decision"], "dst": ["document", "concept"] },
+    "grounded_by":{ "kind": "provenance", "src": null, "dst": ["document"] }
+  },
+  "tags": {
+    "status": { "closed_set": ["active", "superseded", "draft"], "cardinality": "single" },
+    "domain": { "closed_set": null, "cardinality": "multi" }
+  },
+  "contracts": {
+    "decision": { "required_tags": ["status"] },
+    "risk": { "required_tags": ["status"] }
+  },
+  "confidence_bands": {
+    "certain": 0.95,
+    "likely": 0.75,
+    "possible": 0.5,
+    "speculative": 0.25
+  },
+  "source_kinds": ["human_direct", "primary_document", "secondary_web", "model_inference"],
+  "dream_method": {
+    "method": "evidence_weighted",
+    "version": "v0",
+    "support_threshold": 0.7,
+    "contest_support_floor": 0.3,
+    "contest_counter_floor": 0.3,
+    "min_independent_sources": 2,
+    "unbanded_weight": 0.2,
+    "notes": "Weight = source reliability prior x confidence band weight, max per root source, noisy-OR across independent roots. Provenance-kind predicates are excluded. No resolvable root source means insufficient_evidence, never a score."
+  }
+}

@@ -1,0 +1,71 @@
+# The dreaming worker at sample scale (design sections 5 and 6).
+#
+# Nightly: re-dream the epistemic layer and append a hygiene measurement, so
+# the hygiene score is a time series from day one rather than a number someone
+# remembers to take. Beliefs can change without any new assertion, because
+# dream.py reads source reliability priors and method config from
+# ontology/ontology.json; editing a prior is a belief change the next run picks
+# up. `git diff graph/projections.jsonl` is then "what this mind changed its
+# mind about last night".
+#
+# hygiene.py appends to graph/hygiene-history.jsonl only when the numbers
+# actually moved, so a quiet mind does not accumulate identical rows.
+name: dream
+
+on:
+  schedule:
+    # 03:17 UTC. Off the hour on purpose: the top of the hour is the most
+    # contended slot on shared runners and the most commonly dropped.
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dream-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fold the log
+        run: python3 scripts/project.py
+
+      - name: Dream (evidence_weighted/v0)
+        run: python3 scripts/dream.py
+
+      - name: Measure hygiene
+        run: python3 scripts/hygiene.py
+
+      - name: Invariant sweep
+        run: python3 scripts/check.py
+
+      - name: Commit the night's work
+        run: |
+          set -euo pipefail
+          git config user.name "skaldos-mind[bot]"
+          git config user.email "skaldos-mind[bot]@users.noreply.github.com"
+          git add -A graph vault
+          if git diff --cached --quiet; then
+            echo "nothing changed overnight"
+            exit 0
+          fi
+          git commit -m "mind: nightly dream and hygiene measurement [skip ci]" \
+            -m "Automated run of .github/workflows/dream.yml."
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "push rejected (attempt $attempt); rebasing onto the remote"
+            git pull --rebase --autostash
+          done
+          echo "could not push the night's work after 3 attempts" >&2
+          exit 1

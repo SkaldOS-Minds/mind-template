@@ -1,0 +1,74 @@
+# Push-time recompute: this mind's hosted compute (design section 6).
+#
+# Every push re-folds the Edda log into the derived files, re-dreams the
+# epistemic layer, runs the invariant sweep, and commits the result back. A
+# human or agent pushes assertions only; the derived files arrive from here.
+#
+# Order matters. project.py folds the log, dream.py writes projections and
+# re-folds the vault edge blocks that carry projection status, and only then
+# does check.py have a settled tree to compare against. Running check.py before
+# dream.py would report drift on every genuine new assertion.
+#
+# Three independent guards keep this from triggering itself:
+#   1. Pushes made with the default GITHUB_TOKEN do not start new workflow runs.
+#   2. GitHub skips any run whose head commit message contains [skip ci].
+#   3. The explicit `if` below, which states the intent rather than relying on
+#      the other two staying true.
+name: project
+
+on:
+  push:
+    branches: ["**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: project-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  reproject:
+    if: ${{ github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fold the log into nodes, edges and the vault
+        run: python3 scripts/project.py
+
+      - name: Dream (evidence_weighted/v0)
+        run: python3 scripts/dream.py
+
+      - name: Invariant sweep
+        run: python3 scripts/check.py
+
+      - name: Commit derived files back
+        run: |
+          set -euo pipefail
+          git config user.name "skaldos-mind[bot]"
+          git config user.email "skaldos-mind[bot]@users.noreply.github.com"
+          git add -A graph vault
+          if git diff --cached --quiet; then
+            echo "derived files already match the log; nothing to commit"
+            exit 0
+          fi
+          git commit -m "mind: re-project derived files [skip ci]" \
+            -m "Automated fold of graph/assertions.jsonl by .github/workflows/project.yml."
+          # A concurrent push can land between checkout and here. Rebase onto it
+          # and retry; the derived files are a pure function of the log, so a
+          # rebase can only ever produce the same or a fresher result.
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "push rejected (attempt $attempt); rebasing onto the remote"
+            git pull --rebase --autostash
+          done
+          echo "could not push derived files after 3 attempts" >&2
+          exit 1

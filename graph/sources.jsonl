@@ -1,0 +1,3 @@
+{"id": "src:operator", "kind": "human_direct", "reliability": 0.85, "description": "Direct statements from this mind's operator"}
+{"id": "src:agent-inference", "kind": "model_inference", "reliability": 0.35, "description": "Pure model inference, no underlying document"}
+{"id": "src:web-scan", "kind": "secondary_web", "reliability": 0.5, "description": "Web pages and articles found by agent scans"}
