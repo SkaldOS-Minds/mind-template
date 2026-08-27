@@ -61,9 +61,16 @@ Every push triggers a fold, a dream and an invariant sweep, and the derived
 files are committed back by `skaldos-mind[bot]`. A nightly job re-dreams and
 appends a hygiene measurement. Push the log; let the robot push the rest.
 
+## Staying authenticated
+
+You need no GitHub account to work here. The Mind Hub mints a token scoped to
+this one repository, good for an hour, and `scripts/git-credential-mind-hub.py`
+fetches a fresh one whenever `git` asks. Install it once per clone and stop
+thinking about it. `AGENTS.md` section 8 has the two lines.
+
 ## What this is not
 
 A sample, not a factory. No tenancy, no classification-gated reads, no agent
 identity, no concurrent multi-principal writes, and a git history that is
-evidence rather than enforcement. `AGENTS.md` section 8 says when that stops
+evidence rather than enforcement. `AGENTS.md` section 9 says when that stops
 being good enough.

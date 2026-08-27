@@ -151,6 +151,7 @@ recipe that answers your question directly over reading whole files.
 | `scripts/check.py` | the invariant sweep | before you finish a session, always |
 | `scripts/hygiene.py` | the measurement, appends to `graph/hygiene-history.jsonl` | at the end of a working session |
 | `scripts/promote.py --dry-run` | the replay mapping into a SkaldOS tenant | when someone asks what promotion would carry |
+| `scripts/git-credential-mind-hub.py` | keeps `git` authenticated against the hub | once, at setup; never by hand after (section 8) |
 
 They are Python standard library only, deliberately: a mind must run anywhere
 `python3` exists, with no install step.
@@ -229,7 +230,51 @@ the workflow, not a conflict. Pull before your next write.
 If a run fails, it is almost always `check.py` finding something real. Read the
 job log, fix it by appending assertions, and push again.
 
-## 8. What this mind is not
+## 8. Staying authenticated
+
+You do not need a GitHub account to work in this mind, and you should not get
+one. Nothing here belongs to your GitHub identity. Access is brokered: the Mind
+Hub mints a token scoped to this one repository, valid for one hour, and hands
+it to `git`. That is the whole mechanism.
+
+One hour is shorter than a working session, so the first `git push` after lunch
+is the one that fails. The fix is `scripts/git-credential-mind-hub.py`, a git
+credential helper that fetches a fresh token whenever git needs one. Install it
+once per clone:
+
+```sh
+export MIND_HUB_URL=https://<the hub>
+export MIND_HUB_TOKEN=<your hub token>
+git config credential.helper ""     # ignore any inherited helper
+git config --add "credential.https://github.com.helper" \
+    "$PWD/scripts/git-credential-mind-hub.py"
+```
+
+The mind name comes from the clone's directory, the same rule `assert.py` uses
+for the Edda header, so `mind-wiersholm` needs no `--mind` flag. Pass
+`--mind <slug>` if the directory was renamed. `MIND_HUB_URL` and `MIND_HUB_TOKEN`
+can also live in a `.mind-hub.json` beside this file; the environment wins, which
+is what lets a shared clone carry the hub URL while each operator keeps their own
+token to themselves.
+
+After that, forget it exists. Tokens are cached until two minutes before they
+expire, and when git rejects one the helper drops it and fetches another. If a
+push fails with an authentication error anyway, the helper is telling you
+something on stderr: read it. The usual answers are an unset `MIND_HUB_TOKEN` or
+a hub that says you are not a member of this mind.
+
+Never put a token in a remote URL, and never commit one. If you find one in
+`git remote -v`, replace it:
+
+```sh
+git remote set-url origin https://github.com/<owner>/<repo>.git
+```
+
+The URL form works, and the hub hands you one for a first clone, but a token
+written into `.git/config` outlives its own hour and then sits there being a
+secret in a file for no reason.
+
+## 9. What this mind is not
 
 This is a sample, not the factory. Nothing here provides, or may be described as
 providing:
@@ -244,7 +289,7 @@ If a second principal needs to write concurrently, or a classification boundary
 appears in the data, or autonomy outgrows what this contract holds, that is a
 promotion trigger. Say so; do not paper over it.
 
-## 9. If something is already broken
+## 10. If something is already broken
 
 - `python3 scripts/check.py` tells you what and where.
 - Drift in a derived file: re-run `python3 scripts/project.py` and then
