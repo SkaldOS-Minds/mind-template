@@ -214,6 +214,12 @@ locally, run on a machine that does not forget.
 Both commit as `skaldos-mind[bot]` with `[skip ci]` in the message, which is
 what stops a recompute from triggering another recompute.
 
+The nightly run does nothing at all until this mind has its first assertion. A
+log holding only its Edda header is a blank mind, and a blank mind has nothing
+to dream about and no hygiene worth measuring. That guard is what keeps the
+template repository blank under its own cron, so do not remove it when you fork
+the workflow.
+
 What this means for you in practice: **push the log, let the robot push the
 derived files.** You can commit derived files too and nothing breaks, since the
 fold is deterministic and the workflow will simply find nothing to do. But if
