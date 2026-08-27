@@ -40,8 +40,8 @@ def check_edda(errors, warnings):
         if not rows:
             # A mind stamped from the template, not yet folded once. Nothing is
             # wrong with it; it has simply never been run.
-            warnings.append("edda: the log is empty and has no header record yet; "
-                            "run scripts/project.py once to initialise this mind")
+            warnings.append("edda: this mind has no assertions yet and is not named; "
+                            "the first scripts/assert.py write names it")
             return
         errors.append("edda: graph/assertions.jsonl has no header record; "
                       'the first line must be {"edda": "0", "mind": "<slug>"}')

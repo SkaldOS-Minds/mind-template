@@ -481,12 +481,16 @@ def main():
     ap.add_argument("--quiet", action="store_true")
     args = ap.parse_args()
 
-    # A mind stamped from the template starts with an empty log. Writing its
-    # Edda header is initialisation, never mutation: it touches no assertion
-    # row, and after the first fold this is a no-op forever.
-    if not args.check and lib.ensure_edda_header():
-        if not args.quiet:
-            print(f"project.py: initialised the Edda log as mind '{lib.mind_slug()}'")
+    # A mind stamped from the template starts with an empty log and no header.
+    # The fold deliberately does not write one. A mind names itself when it
+    # first speaks, through assert.py, on a machine somebody chose; if the fold
+    # named it, the first CI run on the template repo itself would bake its own
+    # slug into every mind ever stamped from it. That is not hypothetical: it is
+    # what happened on 2026-08-27, before this comment existed.
+    header, rows = lib.split_edda_log()
+    if not args.quiet and header is None and not rows:
+        print("project.py: this mind has no assertions yet and is not named; "
+              "the first scripts/assert.py write names it")
 
     result = compute()
     if args.check:

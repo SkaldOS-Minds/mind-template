@@ -16,12 +16,14 @@ honest kind is the kind you record.
 A mind stamped from the SkaldOS Mind template starts with no assertions at all.
 Two things are worth doing before the first claim:
 
-1. **Run the fold once.** `python3 scripts/project.py` writes the Edda header
-   record that makes the log self-identifying. The mind takes its slug from the
-   repository directory name, with any `mind-` prefix stripped, so a repo named
-   `mind-wiersholm` becomes the mind `wiersholm`. Set `MIND_SLUG` in the
-   environment before that first run if you want a different name. A mind names
-   itself once; after the header exists nothing re-reads either.
+1. **Know how this mind gets its name.** The first `scripts/assert.py` write
+   writes the Edda header record that makes the log self-identifying, and takes
+   the slug from the repository directory name with any `mind-` prefix stripped:
+   a clone in `mind-wiersholm` becomes the mind `wiersholm`. Export `MIND_SLUG`
+   before that first write if you want a different name. A mind names itself
+   once and never renames, so this is worth thirty seconds of attention now.
+   Nothing else writes the header, the fold included: a name should come from
+   whoever is making the first claim, not from a robot folding an empty log.
 2. **Fit the ontology to the subject.** `ontology/ontology.json` ships a
    deliberately generic starting set: seven node types, ten predicates, two
    tags. It is meant to be edited on day one, before there is data shaped by the

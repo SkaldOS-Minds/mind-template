@@ -28,6 +28,9 @@ concurrency:
 
 jobs:
   nightly:
+    # Never on the template repository itself: it must stay a blank mind, and a
+    # blank mind has nothing to dream about.
+    if: ${{ !github.event.repository.is_template }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

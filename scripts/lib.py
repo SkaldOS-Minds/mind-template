@@ -96,6 +96,11 @@ def mind_slug(path: Path = ASSERTIONS_PATH) -> str:
     finally the repository directory name with any `mind-` prefix stripped.
     Instantiating the template as `mind-wiersholm` therefore yields `wiersholm`
     on the first write, with no editing step.
+
+    Only assert.py resolves this, and only on the first write. The fold does not,
+    on purpose: a directory name is a decent guess when a person or agent is
+    making a claim in a clone they chose, and a bad one when CI is folding an
+    empty log in a checkout named after the template.
     """
     header = edda_header(path)
     if header and header.get("mind"):

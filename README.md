@@ -33,13 +33,14 @@ scripts/dream.py`, and you get the same bytes back.
 ## First five minutes
 
 ```sh
-python3 scripts/project.py      # initialises the log header, folds what is there
-python3 scripts/check.py        # must be clean
+python3 scripts/check.py        # clean, and tells you this mind is not named yet
 ```
 
-Then fit `ontology/ontology.json` to your subject and register your real sources
-in `graph/sources.jsonl`, before there is data shaped by the wrong vocabulary.
-`AGENTS.md` section 0 covers both.
+Fit `ontology/ontology.json` to your subject and register your real sources in
+`graph/sources.jsonl` before there is data shaped by the wrong vocabulary. Then
+make the first claim: that write names the mind, after the directory you cloned
+into, so clone into `mind-<something-you-mean>` or export `MIND_SLUG` first.
+`AGENTS.md` section 0 covers all of it.
 
 ## Writing
 
