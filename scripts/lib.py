@@ -2,6 +2,7 @@
 import json
 import os
 import re
+import time
 import datetime as _dt
 from pathlib import Path
 
@@ -84,7 +85,15 @@ def edda_header(path: Path = ASSERTIONS_PATH):
 
 
 def load_assertions() -> list:
-    return split_edda_log()[1]
+    """The log, in fold order: (asserted_at, id), not file order.
+
+    File order and fold order were the same thing until two writers existed.
+    After a union merge, the file interleaves two appended tails arbitrarily;
+    sorting here makes every consumer of the log (fold, dream, check, hygiene,
+    promote) deterministic over the merged file. Appends by a single writer
+    are already in this order, so for the one-writer case this is a no-op.
+    """
+    return sorted(split_edda_log()[1], key=assertion_sort_key)
 
 
 def mind_slug(path: Path = ASSERTIONS_PATH) -> str:
@@ -194,14 +203,82 @@ def slugify(node_id: str) -> str:
     return slug or "node"
 
 
-def next_assertion_id(assertions) -> str:
-    highest = 0
-    for a in assertions:
-        aid = a.get("id", "")
-        m = re.fullmatch(r"a-(\d+)", aid or "")
-        if m:
-            highest = max(highest, int(m.group(1)))
-    return f"a-{highest + 1:04d}"
+_uuid7_last_ms = 0
+_uuid7_seq = 0
+
+
+def _uuid7() -> str:
+    """A UUIDv7 (RFC 9562), monotonic within this process.
+
+    The factory mints every graph id as `uuidv7()` in Postgres; this is the
+    same shape minted client-side, stdlib only. Monotonicity matters beyond
+    the RFC: ids minted in one batch must sort in mint order under the
+    (asserted_at, id) fold key, because a batch shares one `asserted_at` and
+    the id is the tie-breaker. A 12-bit counter in rand_a provides it; if a
+    single millisecond somehow mints more than 4096 ids, the timestamp is
+    nudged forward one ms, which stays strictly ordered and never repeats.
+    """
+    global _uuid7_last_ms, _uuid7_seq
+    ms = time.time_ns() // 1_000_000
+    if ms <= _uuid7_last_ms:
+        ms = _uuid7_last_ms
+        _uuid7_seq += 1
+        if _uuid7_seq > 0xFFF:
+            ms += 1
+            _uuid7_seq = 0
+    else:
+        _uuid7_seq = 0
+    _uuid7_last_ms = ms
+    rand_b = int.from_bytes(os.urandom(8), "big") & 0x3FFFFFFFFFFFFFFF
+    value = (
+        (ms & 0xFFFFFFFFFFFF) << 80
+        | 0x7 << 76
+        | (_uuid7_seq & 0x0FFF) << 64
+        | 0x2 << 62
+        | rand_b
+    )
+    h = f"{value:032x}"
+    return f"{h[0:8]}-{h[8:12]}-{h[12:16]}-{h[16:20]}-{h[20:32]}"
+
+
+def new_assertion_id() -> str:
+    """A collision-free assertion id: `a-<uuidv7>`.
+
+    Replaces the sequential `a-NNNN` counter (2026-08-28, stress-test finding
+    B3): two clones of one mind each minted the next number and collided on
+    push. Ids minted from a wall clock plus randomness cannot collide across
+    writers, so a two-writer race degrades to a textual union merge of two
+    appended tails instead of a semantic conflict nobody can resolve. Existing
+    `a-NNNN` ids in a log stay exactly as written; only new mints changed.
+    """
+    return f"a-{_uuid7()}"
+
+
+#: Both id eras are valid forever: sequential `a-NNNN` (minted before
+#: 2026-08-28) and `a-<uuidv7>`. Old ids are never rewritten; that would be
+#: editing history.
+ASSERTION_ID_RE = re.compile(
+    r"a-(\d{4,}|[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})"
+)
+
+
+def _id_sort_key(aid: str):
+    """Old sequential ids sort numerically among themselves and before the
+    uuid era; uuid ids sort lexicographically, which for UUIDv7 is time order."""
+    m = re.fullmatch(r"a-(\d+)", aid or "")
+    if m:
+        return (0, int(m.group(1)), "")
+    return (1, 0, aid or "")
+
+
+def assertion_sort_key(a: dict):
+    """The fold order: (asserted_at, id).
+
+    The fold is last-wins, so its order must not depend on file order: after a
+    union merge of two writers' appended tails, the interleaving in the file
+    is arbitrary, and this key is what keeps the fold deterministic anyway.
+    """
+    return (a.get("asserted_at") or "", _id_sort_key(a.get("id", "")))
 
 
 def iso_now() -> str:

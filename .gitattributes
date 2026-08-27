@@ -1,0 +1,8 @@
+# Two writers appending to the log is a textual union, not a conflict: ids are
+# UUIDv7 (collision-free) and the fold orders by (asserted_at, id), never file
+# order, so the interleaving of merged tails does not matter.
+graph/assertions.jsonl merge=union
+
+# Derived files are not merged; they are rebuilt. On a conflict in nodes.jsonl,
+# edges.jsonl, projections.jsonl or the vault, take either side and rerun
+# scripts/project.py and scripts/dream.py; check.py verifies the result.

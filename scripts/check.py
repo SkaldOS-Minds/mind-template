@@ -63,8 +63,8 @@ def check_log(assertions, errors, warnings):
         aid = a.get("id")
         if not aid:
             errors.append(f"log: {where} has no id")
-        elif not re.fullmatch(r"a-\d{4,}", aid):
-            errors.append(f"log: id '{aid}' does not match a-NNNN")
+        elif not lib.ASSERTION_ID_RE.fullmatch(aid):
+            errors.append(f"log: id '{aid}' is neither a-NNNN nor a-<uuidv7>")
         elif aid in seen:
             errors.append(f"log: duplicate assertion id '{aid}'")
         else:
@@ -100,6 +100,13 @@ def check_sources(assertions, sources, ontology, errors, warnings):
 def check_graph(nodes, edges, ontology, errors, warnings):
     for key in sorted(edges):
         e = edges[key]
+        # Archived edges are exempt from the orphan sweep (2026-08-28,
+        # stress-test finding B2): the contract's only remedy for an orphan is
+        # an edge_archive, so an archive must actually clear the error, or the
+        # mind can never go green without asserting a node it believes does
+        # not exist.
+        if not e.get("active", True):
+            continue
         for side in ("src", "dst"):
             if e[side] not in nodes:
                 errors.append(f"orphan edge: {key} has no node for {side} '{e[side]}'")

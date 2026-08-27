@@ -305,13 +305,13 @@ def main():
         print(f"assert.py: {len(errors)} structural error(s); nothing was written", file=sys.stderr)
         return 2
 
-    # ids and asserted_at are assigned here, once, and never regenerated
+    # ids and asserted_at are assigned here, once, and never regenerated.
+    # Ids are UUIDv7 (`a-<uuidv7>`), monotonic within the batch, so two
+    # writers cannot collide and the batch keeps its order under the fold key.
     now = lib.iso_now()
-    next_id = lib.next_assertion_id(existing)
     numbered = []
-    counter = int(next_id.split("-")[1])
     for row in rows:
-        final = {"id": f"a-{counter:04d}", "kind": row["kind"]}
+        final = {"id": lib.new_assertion_id(), "kind": row["kind"]}
         for field in ("node", "edge", "node_id", "tag", "value", "reason"):
             if field in row:
                 final[field] = row[field]
@@ -325,7 +325,6 @@ def main():
             if field not in lib.KNOWN_ASSERTION_FIELDS:
                 final[field] = row[field]
         numbered.append(final)
-        counter += 1
 
     if args.dry_run:
         print("assert.py --dry-run: would append")
