@@ -21,9 +21,14 @@ graph/
   hygiene-history.jsonl      the measurement, as a time series
   dream-history.jsonl        when beliefs were recomputed, and what moved
 vault/                       Obsidian projection, one note per node
+workflows/                   long-running workflow files; README.md is the spec
 scripts/                     stdlib-only Python, plus two shell read recipes
 .github/workflows/           push-time recompute and the nightly dream
 ```
+
+`workflows/` and `.github/workflows/` are different things that share a word.
+The first holds this mind's own standing instructions — a prose goal plus the
+budget and tools a run of it is allowed. The second is GitHub Actions.
 
 Everything outside `graph/assertions.jsonl`, `graph/sources.jsonl`,
 `ontology/ontology.json` and the human-owned regions of `vault/*.md` is

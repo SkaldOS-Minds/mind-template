@@ -205,7 +205,9 @@ git add -A && git commit -m "..."                       # the log is the history
 ## 7. Hosted compute
 
 This mind ships two GitHub Actions workflows. They are the same scripts you run
-locally, run on a machine that does not forget.
+locally, run on a machine that does not forget. They are not the same thing as
+`workflows/`, which holds this mind's own long-running workflow files;
+`workflows/README.md` specifies that format and `check.py` enforces it.
 
 | Workflow | Trigger | What it does |
 |---|---|---|

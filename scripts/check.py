@@ -12,6 +12,10 @@ Errors (exit 1):
     source registered with an unknown kind or an out-of-range reliability
   - derived-file drift: nodes.jsonl, edges.jsonl, projections.jsonl or any
     vault note whose machine-owned regions differ from a fresh fold
+  - workflow files: any workflows/*.md whose frontmatter is outside the
+    subset workflow.py parses, whose budget is absent or unbounded, whose
+    keys or tools are outside the contract, or whose prose goal is empty.
+    workflows/README.md is the spec, not a workflow, and is not validated.
 
 Warnings (exit 0):
   - hygiene gaps: assertions with no source and no resolvable lineage root,
@@ -31,6 +35,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import lib  # noqa: E402
 import project  # noqa: E402
 import dream as dream_mod  # noqa: E402
+import workflow  # noqa: E402
 
 
 def check_edda(errors, warnings):
@@ -143,6 +148,21 @@ def check_hygiene(assertions, sources, ontology, warnings):
             warnings.append(f"hygiene: {aid} has no confidence band")
 
 
+def check_workflows(errors):
+    """Every workflows/*.md file, against the format its README specifies.
+
+    Errors, never warnings: a workflow file is an instruction to spend money
+    and act unattended, and the plan (section 2) ratified that a file the rig
+    cannot vouch for is refused rather than run. A mind with no workflows/
+    directory is not missing anything.
+    """
+    files = workflow.workflow_files(lib.ROOT / workflow.WORKFLOWS_DIRNAME)
+    for path in files:
+        for problem in workflow.validate_file(path):
+            errors.append(f"workflow: {lib.rel(path)}: {problem}")
+    return len(files)
+
+
 def check_derived(errors):
     result = project.compute()
     for item in project.drift(result):
@@ -178,6 +198,7 @@ def main():
     check_sources(assertions, sources, ontology, errors, warnings)
     check_graph(nodes, edges, ontology, errors, warnings)
     check_hygiene(assertions, sources, ontology, warnings)
+    n_workflows = check_workflows(errors)
     result = check_derived(errors)
     for item in project.drift(result):
         if item.endswith("(no node in the log)"):
@@ -191,7 +212,7 @@ def main():
 
     if not args.quiet:
         print(f"check.py: {len(assertions)} assertions, {len(nodes)} nodes, {len(edges)} edges, "
-              f"{len(errors)} error(s), {len(warnings)} warning(s)")
+              f"{n_workflows} workflow(s), {len(errors)} error(s), {len(warnings)} warning(s)")
     if errors:
         return 1
     if warnings and args.warnings_as_errors:
